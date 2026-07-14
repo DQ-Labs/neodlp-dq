@@ -1,0 +1,63 @@
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Draft release tag (e.g. v0.4.5-test)'
+        required: true
+        default: 'v0.0.0-test'
+
+name: 🚀 Release on GitHub
+jobs:
+  release:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'windows-latest'
+            target_platform: 'win32'
+            target_arch: 'x64'
+            args: '--target x86_64-pc-windows-msvc --config ./src-tauri/tauri.windows-x86_64.conf.json'
+          - platform: 'windows-11-arm'
+            target_platform: 'win32'
+            target_arch: 'arm64'
+            args: '--target aarch64-pc-windows-msvc --config ./src-tauri/tauri.windows-aarch64.conf.json'
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: 🚚 Checkout repository
+        uses: actions/checkout@v6
+
+      - name: 📦 Setup node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 'lts/*'
+          cache: 'npm'
+
+      - name: 🛠️ install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: 🛠️ Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - name: 🛠️ Install frontend dependencies
+        run: npm install
+
+      - name: 📥 Download binaries
+        run: npm run download -- ${{ matrix.target_platform }} ${{ matrix.target_arch }}
+
+      - name: 🚀 Build and publish
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ inputs.tag_name || github.ref_name }}
+          releaseName: ${{ github.event.repository.name }}-${{ inputs.tag_name || github.ref_name }}
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}

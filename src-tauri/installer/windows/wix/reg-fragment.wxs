@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Fragment>
+    <DirectoryRef Id="TARGETDIR">
+      <Component Id="NeoDlpRegEntriesFragment" Guid="*">
+        <RegistryKey Root="HKLM" Key="Software\Microsoft\Windows\CurrentVersion\Run">
+          <RegistryValue Name="NeoDLP DQ" Type="string" Value="&quot;[INSTALLDIR]neodlp-dq.exe&quot; --hidden" KeyPath="no" />
+        </RegistryKey>
+      </Component>
+    </DirectoryRef>
+  </Fragment>
+</Wix>
