@@ -298,6 +298,7 @@ pub async fn run() {
             .max_file_size(5_242_880) /* in bytes = 5MB */
             .build(),
         )
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             // Focus the main window when attempting to launch another instance
             if let Some(window) = app.get_webview_window("main") {
