@@ -1736,11 +1736,13 @@ function AppInfoSettings() {
             <p className="text-xs text-muted-foreground mb-3">Noticed any bug or inconsistencies? Report it to help us improve</p>
             <div className="report">
                 <span className="flex items-center gap-4 flex-wrap">
-                    <Button className="px-4" variant="outline" size="sm" asChild>
-                        <a href={'mailto:' + config.appSupportEmail + '?subject=[BUG]%20Title%20Here&body=Describe%20The%20Bug%20Here.%20Follow%20this%20issue%20template%3A%20https%3A%2F%2Fgithub.com%2F' + config.appRepo + '%2Fissues%2Fnew%3Ftemplate%3Dbug_report.md'} target="_blank" >
-                            <Mail className="size-4" /> Write Us an Email
-                        </a>
-                    </Button>
+                    {config.appSupportEmail && (
+                        <Button className="px-4" variant="outline" size="sm" asChild>
+                            <a href={'mailto:' + config.appSupportEmail + '?subject=[BUG]%20Title%20Here&body=Describe%20The%20Bug%20Here.%20Follow%20this%20issue%20template%3A%20https%3A%2F%2Fgithub.com%2F' + config.appRepo + '%2Fissues%2Fnew%3Ftemplate%3Dbug_report.md'} target="_blank" >
+                                <Mail className="size-4" /> Write Us an Email
+                            </a>
+                        </Button>
+                    )}
                     <Button className="px-4" size="sm" asChild>
                         <a href={'https://github.com/' + config.appRepo + '/issues/new?template=bug_report.md'} target="_blank" >
                             <Bug className="size-4" /> Create a GitHub Issue
