@@ -15,6 +15,7 @@ import { FetchVideoMetadataParams, StartDownloadParams } from "@/providers/appCo
 import { useThrottledCallback } from '@tanstack/react-pacer/throttler';
 import { fetchDownloadStateById } from "@/services/database";
 import { dataDir } from "@tauri-apps/api/path";
+import { config } from "@/config";
 
 export default function useDownloader() {
     const globalDownloadStates = useDownloadStatesStore((state) => state.downloadStates);
@@ -166,7 +167,7 @@ export default function useDownloader() {
             }
             if ((!USE_CUSTOM_COMMANDS && !resumeState?.custom_command) && USE_POTOKEN) {
                 if (!isRunningPotServer) {
-                    LOG.warning("NEODLP", "Looks like you want to use PO Token! But, NeoDLP POT Server is not running. PO Token generation will most likely fail!");
+                    LOG.warning("NEODLP", `Looks like you want to use PO Token! But, ${config.appName} POT Server is not running. PO Token generation will most likely fail!`);
                 }
                 if (DISABLE_INNERTUBE) {
                     args.push('--extractor-args', `youtubepot-bgutilhttp:base_url=http://localhost:${POT_SERVER_PORT};disable_innertube=1`);
@@ -520,7 +521,7 @@ export default function useDownloader() {
 
         if ((!USE_CUSTOM_COMMANDS && !resumeState?.custom_command) && USE_POTOKEN) {
             if (!isRunningPotServer) {
-                LOG.warning("NEODLP", "Looks like you want to use PO Token! But, NeoDLP POT Server is not running. PO Token generation will most likely fail!");
+                LOG.warning("NEODLP", `Looks like you want to use PO Token! But, ${config.appName} POT Server is not running. PO Token generation will most likely fail!`);
             }
             if (DISABLE_INNERTUBE) {
                 args.push('--extractor-args', `youtubepot-bgutilhttp:base_url=http://localhost:${POT_SERVER_PORT};disable_innertube=1`);

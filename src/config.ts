@@ -5,6 +5,6 @@ export const config = {
     appRepo: "DQ-Labs/neodlp-dq",
     appSupportEmail: "",
     appAuthor: "DQ Labs",
-    appAuthorUrl: "https://github.com/DQ-Labs",
-    appAuthorSponsorUrl: "https://github.com/DQ-Labs",
+    originalCreatorName: "Subhamoy Biswas",
+    originalCreatorUrl: "https://github.com/neosubhamoy",
 }

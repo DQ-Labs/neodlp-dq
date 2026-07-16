@@ -6,6 +6,7 @@ import { CloseIcon } from "@/components/icons/close";
 import { UnmaximizeIcon } from "@/components/icons/unmaximize";
 import { useDownloadActionStatesStore, useDownloadStatesStore, useSettingsPageStatesStore } from "@/services/store";
 import { useAppContext } from "@/providers/appContextProvider";
+import { config } from "@/config";
 
 export default function TitleBar() {
     const [maximized, setMaximized] = useState<boolean>(false);
@@ -37,7 +38,7 @@ export default function TitleBar() {
     return (
         <div className="titlebar flex items-center justify-between border-b bg-background">
             <div className="flex items-center justify-center grow px-4 py-2.5" data-tauri-drag-region>
-                <h1 className="text-sm text-primary font-semibold">NeoDLP</h1>
+                <h1 className="text-sm text-primary font-semibold">{config.appName}</h1>
             </div>
             <div className="controls flex items-center justify-center">
                 <button

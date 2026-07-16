@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { BadgeCheck, BellRing, BrushCleaning, Bug, CircleCheck, Cookie, ExternalLink, FilePen, FileVideo, Folder, FolderOpen, Globe, Heart, Info, KeyRound, Loader2, LucideIcon, Mail, Monitor, Moon, Package, Scale, SquareTerminal, Sun, Terminal, Timer, Trash, TriangleAlert, WandSparkles, Wifi, Wrench } from "lucide-react";
+import { BadgeCheck, BellRing, BrushCleaning, Bug, CircleCheck, Cookie, ExternalLink, FilePen, FileVideo, Folder, FolderOpen, Globe, Info, KeyRound, Loader2, LucideIcon, Mail, Monitor, Moon, Package, Scale, SquareTerminal, Sun, Terminal, Timer, Trash, TriangleAlert, WandSparkles, Wifi, Wrench } from "lucide-react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { GithubIcon } from "@hugeicons/core-free-icons";
 import { cn } from "@/lib/utils";
@@ -1227,7 +1227,7 @@ function AppPoTokenSettings() {
                 <Label htmlFor="use-potoken">Use PO Token</Label>
             </div>
             <Label className="text-xs text-muted-foreground flex items-center">
-                <span className="">NeoDLP POT Server is</span>
+                <span className="">{config.appName} POT Server is</span>
                 {isStartingPotServer ? (
                     <span className="text-amber-600 dark:text-amber-500 underline">Starting</span>
                 ) : isRunningPotServer ? (
@@ -1656,7 +1656,7 @@ function AppInfoSettings() {
         <div className="app-info">
             <Card className="p-4 space-y-4 flex flex-row items-center gap-4">
                 <div className="flex aspect-square size-18 items-center justify-center rounded-lg m-0">
-                    <NeoDlpLogo className="size-full rounded-lg border border-border [--logo-stop-color-1:#4444FF] [--logo-stop-color-2:#FF43D0] customscheme:[--logo-stop-color-1:var(--color-chart-5)] customscheme:[--logo-stop-color-2:var(--color-chart-1)]" />
+                    <NeoDlpLogo className="size-full rounded-lg border border-border" />
                 </div>
                 <div className="flex flex-col justify-center gap-1">
                   <span className="truncate font-semibold">{config.appName} <Badge className="ml-1 border-primary px-1.5" variant="outline"><span className="mb-0.5">v{appVersion}</span></Badge></span>
@@ -1677,8 +1677,8 @@ function AppInfoSettings() {
             </Card>
         </div>
         <div className="about-developer">
-            <h3 className="font-semibold">Developer</h3>
-            <p className="text-xs text-muted-foreground mb-3">Meet the Creator of NeoDLP</p>
+            <h3 className="font-semibold">Original Creator</h3>
+            <p className="text-xs text-muted-foreground mb-3">{config.appName} is a {config.appAuthor} fork of NeoDLP — meet its original creator</p>
             <Card className="p-4 space-y-4 flex flex-row items-center gap-4">
                 <div className="relative w-fit m-0">
                     <Avatar className="size-11">
@@ -1691,18 +1691,13 @@ function AppInfoSettings() {
                     </span>
                 </div>
                 <div className="flex flex-col justify-center gap-1 m-0">
-                    <span className="truncate font-semibold">{config.appAuthor}</span>
+                    <span className="truncate font-semibold">{config.originalCreatorName}</span>
                     <p className="text-xs text-muted-foreground">Full-Stack Developer</p>
                 </div>
                 <div className="spacer grow"></div>
-                <Button variant="ghost" size="icon" className="p-5 m-0 border border-input" title="Official Website" asChild>
-                    <a href={config.appAuthorUrl} target="_blank">
-                        <Globe className="size-4" />
-                    </a>
-                </Button>
-                <Button className="py-5" title="Buy Me a Coffee" asChild>
-                    <a href={config.appAuthorSponsorUrl} target="_blank">
-                        <Heart className="size-4" /> Sponsor
+                <Button className="py-5" title="GitHub Profile" asChild>
+                    <a href={config.originalCreatorUrl} target="_blank">
+                        <Globe className="size-4" /> GitHub
                     </a>
                 </Button>
             </Card>
@@ -1715,7 +1710,7 @@ function AppInfoSettings() {
                     <TriangleAlert className="size-4 stroke-primary" />
                     <AlertTitle className="text-sm">Flatpak Sandbox Detected!</AlertTitle>
                     <AlertDescription className="text-xs">
-                        It looks like you are running NeoDLP in a Flatpak sandbox. Some features like browser integration, desktop notifications, cookies, changing download folder, revealing completed downloads in explorer, and auto-launch on startup are not available in Flatpak due to sandbox restrictions. To use these features, please install the native linux build (DEB, RPM or AUR) of NeoDLP.
+                        It looks like you are running {config.appName} in a Flatpak sandbox. Some features like browser integration, desktop notifications, cookies, changing download folder, revealing completed downloads in explorer, and auto-launch on startup are not available in Flatpak due to sandbox restrictions. To use these features, please install the native linux build (DEB, RPM or AUR) of {config.appName}.
                     </AlertDescription>
                 </Alert>
             ) : isAppimage ? (
@@ -1723,7 +1718,7 @@ function AppInfoSettings() {
                     <TriangleAlert className="size-4 stroke-primary" />
                     <AlertTitle className="text-sm">Appimage Environment Detected!</AlertTitle>
                     <AlertDescription className="text-xs">
-                        Looks like you are using NeoDLP Appimage. NeoDLP's browser integration features are not available on Appimage environment due to it's limitations. To use NeoDLP's browser integration features please install the native linux build (DEB, RPM or AUR) of NeoDLP.
+                        Looks like you are using {config.appName} Appimage. {config.appName}'s browser integration features are not available on Appimage environment due to it's limitations. To use {config.appName}'s browser integration features please install the native linux build (DEB, RPM or AUR) of {config.appName}.
                     </AlertDescription>
                 </Alert>
             ) : (
@@ -1731,7 +1726,7 @@ function AppInfoSettings() {
                     <CircleCheck className="size-4 stroke-primary" />
                     <AlertTitle className="text-sm">All Set! Cheers :)</AlertTitle>
                     <AlertDescription className="text-xs">
-                        NeoDLP is running as normal without any limitations! You should be able to use all the features of NeoDLP without any issues. If you face any problem, feel free to report it to us.
+                        {config.appName} is running as normal without any limitations! You should be able to use all the features of {config.appName} without any issues. If you face any problem, feel free to report it to us.
                     </AlertDescription>
                 </Alert>
             )}
@@ -1756,10 +1751,10 @@ function AppInfoSettings() {
         </div>
         <div className="license-and-usage">
             <h3 className="font-semibold">License and Usage</h3>
-            <p className="text-xs text-muted-foreground mb-3">License and usage terms of NeoDLP</p>
+            <p className="text-xs text-muted-foreground mb-3">License and usage terms of {config.appName}</p>
             <div className="license">
-                <p className="text-sm mb-3">NeoDLP is a Fully Open-Source Software Licensed under the MIT license. Anyone can view, modify, use (personal and commercial) or distribute it's sources without any extra permission (Just include the LICENSE file :)</p>
-                <p className="text-sm mb-3"><TriangleAlert className="size-4 stroke-primary inline mb-1 mr-0.5" /> DISCLAIMER: NeoDLP facilitates downloading from various Online Platforms with different Policies and Terms of Use which Users must follow. We strictly do not promote any unauthorized downloading of copyrighted content. NeoDLP is only made for downloading content that the user holds the copyright to or has the authority for. Users must use the downloaded content wisely and solely at their own legal responsibility. The developer is not responsible for any action taken by the user, and takes zero direct or indirect liability for that matter.</p>
+                <p className="text-sm mb-3">{config.appName} is a Fully Open-Source Software Licensed under the MIT license. Anyone can view, modify, use (personal and commercial) or distribute it's sources without any extra permission (Just include the LICENSE file :)</p>
+                <p className="text-sm mb-3"><TriangleAlert className="size-4 stroke-primary inline mb-1 mr-0.5" /> DISCLAIMER: {config.appName} facilitates downloading from various Online Platforms with different Policies and Terms of Use which Users must follow. We strictly do not promote any unauthorized downloading of copyrighted content. {config.appName} is only made for downloading content that the user holds the copyright to or has the authority for. Users must use the downloaded content wisely and solely at their own legal responsibility. The developer is not responsible for any action taken by the user, and takes zero direct or indirect liability for that matter.</p>
                 <span className="flex items-center gap-4 flex-wrap">
                     <Button className="px-4" variant="outline" size="sm" asChild>
                         <a href={'https://github.com/' + config.appRepo + '/blob/main/LICENSE'} target="_blank" >
@@ -1775,7 +1770,7 @@ function AppInfoSettings() {
                         <DialogContent className="sm:max-w-150">
                             <DialogHeader>
                                 <DialogTitle>Dependencies</DialogTitle>
-                                <DialogDescription>Major dependencies of NeoDLP</DialogDescription>
+                                <DialogDescription>Major dependencies of {config.appName}</DialogDescription>
                             </DialogHeader>
                             <div className="flex flex-col gap-4 max-h-[45vh] overflow-y-auto no-scrollbar">
                                 <h4 className="text-sm font-semibold">External Binaries</h4>

@@ -345,14 +345,14 @@ pub async fn run() {
 
             let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)
                 .map_err(|e| format!("Failed to create quit menu item: {}", e))?;
-            let show = MenuItem::with_id(app, "show", "Show NeoDLP", true, None::<&str>)
+            let show = MenuItem::with_id(app, "show", "Show NeoDLP DQ", true, None::<&str>)
                 .map_err(|e| format!("Failed to create show menu item: {}", e))?;
             let menu = Menu::with_items(app, &[&show, &quit])
                 .map_err(|e| format!("Failed to create menu: {}", e))?;
             let tray = TrayIconBuilder::with_id("main")
                 .icon(app.default_window_icon().unwrap().clone())
                 .menu(&menu)
-                .tooltip("NeoDLP")
+                .tooltip("NeoDLP DQ")
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "show" => {
                         if let Some(window) = app.get_webview_window("main") {
