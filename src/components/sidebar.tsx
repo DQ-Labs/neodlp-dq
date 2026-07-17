@@ -39,10 +39,11 @@ export function AppSidebar() {
     const topItems: Array<RoutesObj> = [
         AllRoutes[0], // Downloader
         AllRoutes[1], // Library
+        AllRoutes[2], // Converter
     ];
 
     const bottomItems: Array<RoutesObj> = [
-        AllRoutes[2], // Settings
+        AllRoutes[3], // Settings
     ];
 
     useEffect(() => {

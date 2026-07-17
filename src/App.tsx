@@ -1,15 +1,16 @@
 import { ThemeProvider } from "@/providers/themeProvider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppContext } from "@/providers/appContextProvider";
+import { ConverterContext } from "@/providers/converterContextProvider";
 import { useEffect, useRef, useState } from "react";
 import { arch, exeExtension } from "@tauri-apps/plugin-os";
 import { downloadDir, join, resourceDir, tempDir, dataDir } from "@tauri-apps/api/path";
-import { useBasePathsStore, useDownloadActionStatesStore, useDownloaderPageStatesStore, useDownloadStatesStore, useEnvironmentStore, useKvPairsStatesStore, useSettingsPageStatesStore } from "@/services/store";
+import { useBasePathsStore, useConversionStatesStore, useDownloadActionStatesStore, useDownloaderPageStatesStore, useDownloadStatesStore, useEnvironmentStore, useKvPairsStatesStore, useSettingsPageStatesStore } from "@/services/store";
 import { isObjEmpty} from "@/utils";
 import { Command } from "@tauri-apps/plugin-shell";
 import { useUpdateDownloadStatus } from "@/services/mutations";
 import { useQueryClient } from "@tanstack/react-query";
-import { useFetchAllDownloadStates, useFetchAllkVPairs, useFetchAllSettings } from "@/services/queries";
+import { useFetchAllConversionStates, useFetchAllDownloadStates, useFetchAllkVPairs, useFetchAllSettings } from "@/services/queries";
 import { config } from "@/config";
 // import * as fs from "@tauri-apps/plugin-fs";
 import { useYtDlpUpdater } from "@/helpers/use-ytdlp-updater";
@@ -19,18 +20,21 @@ import useAppUpdater from "@/helpers/use-app-updater";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import useDownloader from "@/helpers/use-downloader";
+import useConverter from "@/helpers/use-converter";
 import usePotServer from "@/helpers/use-pot-server";
 import { invoke } from "@tauri-apps/api/core";
 
 
 export default function App({ children }: { children: React.ReactNode }) {
     const { data: downloadStates, isSuccess: isSuccessFetchingDownloadStates } = useFetchAllDownloadStates();
+    const { data: conversionStates, isSuccess: isSuccessFetchingConversionStates } = useFetchAllConversionStates();
     const { data: settings, isSuccess: isSuccessFetchingSettings } = useFetchAllSettings();
     const { data: kvPairs, isSuccess: isSuccessFetchingKvPairs } = useFetchAllkVPairs();
     const [isSettingsStatePropagated, setIsSettingsStatePropagated] = useState(false);
     const [isKvPairsStatePropagated, setIsKvPairsStatePropagated] = useState(false);
     const globalDownloadStates = useDownloadStatesStore((state) => state.downloadStates);
     const setDownloadStates = useDownloadStatesStore((state) => state.setDownloadStates);
+    const setConversionStates = useConversionStatesStore((state) => state.setConversionStates);
     const setPath = useBasePathsStore((state) => state.setPath);
 
     const setIsFlatpak = useEnvironmentStore((state) => state.setIsFlatpak);
@@ -79,6 +83,7 @@ export default function App({ children }: { children: React.ReactNode }) {
     const pendingErrorUpdatesRef = useRef<Set<string>>(new Set());
 
     const { fetchVideoMetadata, startDownload, pauseDownload, resumeDownload, cancelDownload, processQueuedDownloads } = useDownloader();
+    const { startConversion, cancelConversion, processQueuedConversions } = useConverter();
 
     const ongoingDownloadsCloseable = globalDownloadStates.filter(state => ['starting', 'downloading', 'queued'].includes(state.download_status));
     const setIsPausingDownload = useDownloadActionStatesStore(state => state.setIsPausingDownload);
@@ -197,12 +202,14 @@ export default function App({ children }: { children: React.ReactNode }) {
                 const resourceDirPath = await resourceDir();
 
                 const ffmpegPath = await join(resourceDirPath, 'binaries', `ffmpeg-${currentArch}${currentExeExtension ? '.' + currentExeExtension : ''}`);
+                const ffprobePath = await join(resourceDirPath, 'binaries', `ffprobe-${currentArch}${currentExeExtension ? '.' + currentExeExtension : ''}`);
                 const tempDownloadDirPath = isFlatpak ? await join(downloadDirPath, config.appName, '.tempdownloads') : await join(tempDirPath, config.appPkgName, 'downloads');
                 const appDownloadDirPath = await join(downloadDirPath, config.appName);
 
                 // if (!await fs.exists(tempDownloadDirPath)) fs.mkdir(tempDownloadDirPath, { recursive: true }).then(() => { console.log(`Created DIR: ${tempDownloadDirPath}`) });
 
                 setPath('ffmpegPath', ffmpegPath);
+                setPath('ffprobePath', ffprobePath);
                 setPath('tempDownloadDirPath', tempDownloadDirPath);
                 if (DOWNLOAD_DIR) {
                     setPath('downloadDirPath', DOWNLOAD_DIR);
@@ -356,6 +363,13 @@ export default function App({ children }: { children: React.ReactNode }) {
         }
     }, [downloadStates, isSuccessFetchingDownloadStates, setDownloadStates]);
 
+    // Fetch conversion states from database and sync with state
+    useEffect(() => {
+        if (isSuccessFetchingConversionStates && conversionStates) {
+            setConversionStates(conversionStates);
+        }
+    }, [conversionStates, isSuccessFetchingConversionStates, setConversionStates]);
+
     // Process queued downloads
     useEffect(() => {
         // Safely process the queue when dependencies change
@@ -366,6 +380,15 @@ export default function App({ children }: { children: React.ReactNode }) {
         // Cleanup timeout if component unmounts or dependencies change
         return () => clearTimeout(timeoutId);
     }, [processQueuedDownloads, ongoingDownloads, queuedDownloads]);
+
+    // Process queued conversions
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            processQueuedConversions();
+        }, 500);
+
+        return () => clearTimeout(timeoutId);
+    }, [processQueuedConversions]);
 
     // show a toast and pause the download when yt-dlp exits unexpectedly
     useEffect(() => {
@@ -425,12 +448,14 @@ export default function App({ children }: { children: React.ReactNode }) {
 
     return (
         <AppContext.Provider value={{ fetchVideoMetadata, startDownload, pauseDownload, resumeDownload, cancelDownload }}>
-            <ThemeProvider defaultTheme={APP_THEME || "system"} defaultColorScheme={APP_COLOR_SCHEME || "default"}>
-                <TooltipProvider delayDuration={1000}>
-                    {children}
-                    <Sonner closeButton />
-                </TooltipProvider>
-            </ThemeProvider>
+            <ConverterContext.Provider value={{ startConversion, cancelConversion }}>
+                <ThemeProvider defaultTheme={APP_THEME || "system"} defaultColorScheme={APP_COLOR_SCHEME || "default"}>
+                    <TooltipProvider delayDuration={1000}>
+                        {children}
+                        <Sonner closeButton />
+                    </TooltipProvider>
+                </ThemeProvider>
+            </ConverterContext.Provider>
         </AppContext.Provider>
     );
 }

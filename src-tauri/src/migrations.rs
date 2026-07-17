@@ -231,5 +231,43 @@ pub fn get_migrations() -> Vec<Migration> {
             CREATE INDEX IF NOT EXISTS idx_downloads_id_desc ON downloads(id DESC);
         ",
         kind: MigrationKind::Up,
+    },
+    Migration {
+        version: 4,
+        description: "create_conversions_table",
+        sql: "
+            CREATE TABLE IF NOT EXISTS conversions (
+                id INTEGER PRIMARY KEY NOT NULL,
+                conversion_id TEXT UNIQUE NOT NULL,
+                conversion_status TEXT NOT NULL,
+                conversion_type TEXT NOT NULL,
+                queue_index INTEGER,
+                input_path TEXT NOT NULL,
+                input_filename TEXT NOT NULL,
+                input_ext TEXT,
+                input_filesize INTEGER,
+                input_duration REAL,
+                output_path TEXT,
+                output_format TEXT NOT NULL,
+                process_id INTEGER,
+                progress REAL,
+                speed REAL,
+                filesize INTEGER,
+                error_message TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TRIGGER IF NOT EXISTS update_conversions_updated_at
+                AFTER UPDATE ON conversions
+                FOR EACH ROW
+            BEGIN
+                UPDATE conversions SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+            END;
+
+            CREATE INDEX IF NOT EXISTS idx_conversions_status_updated ON conversions(conversion_status, updated_at DESC);
+            CREATE INDEX IF NOT EXISTS idx_conversions_id_desc ON conversions(id DESC);
+        ",
+        kind: MigrationKind::Up,
     }]
 }

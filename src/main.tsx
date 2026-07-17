@@ -7,6 +7,7 @@ import "@/index.css";
 import RootLayout from "@/pages/layout/root";
 import DownloaderPage from "@/pages/downloader";
 import LibraryPage from "@/pages/library";
+import ConverterPage from "@/pages/converter";
 import SettingsPage from "@/pages/settings";
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
@@ -18,6 +19,7 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
             <Route path="/" element={<RootLayout />}>
               <Route index element={<DownloaderPage />} />
               <Route path="/library" element={<LibraryPage />} />
+              <Route path="/converter" element={<ConverterPage />} />
               <Route path="/settings" element={<SettingsPage />} />
             </Route>
           </Routes>

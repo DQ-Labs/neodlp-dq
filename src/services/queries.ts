@@ -1,10 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
-import { fetchAllDownloadStates, fetchAllKvPairs, fetchAllSettings } from "@/services/database";
+import { fetchAllConversionStates, fetchAllDownloadStates, fetchAllKvPairs, fetchAllSettings } from "@/services/database";
 
 export function useFetchAllDownloadStates() {
     return useQuery({
         queryKey: ['download-states'],
         queryFn: () => fetchAllDownloadStates()
+    })
+}
+
+export function useFetchAllConversionStates() {
+    return useQuery({
+        queryKey: ['conversion-states'],
+        queryFn: () => fetchAllConversionStates()
     })
 }
 

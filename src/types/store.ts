@@ -1,4 +1,5 @@
 import { DownloadState } from "@/types/download";
+import { ConversionState } from "@/types/conversion";
 import { RawVideoInfo } from "@/types/video";
 import { DownloadConfiguration, Settings } from "@/types/settings";
 import { KvStore } from "@/types/kvStore";
@@ -7,6 +8,7 @@ import { Log } from "@/types/logs";
 
 export interface BasePathsStore {
     ffmpegPath: string | null;
+    ffprobePath: string | null;
     tempDownloadDirPath: string | null;
     downloadDirPath: string | null;
     setPath: (key: string, path: string) => void;
@@ -16,6 +18,13 @@ export interface DownloadStatesStore {
     downloadStates: DownloadState[];
     setDownloadStates: (state: DownloadState[]) => void;
     setDownloadState: (state: DownloadState) => void;
+}
+
+export interface ConversionStatesStore {
+    conversionStates: ConversionState[];
+    setConversionStates: (states: ConversionState[]) => void;
+    setConversionState: (state: ConversionState) => void;
+    removeConversionState: (conversion_id: string) => void;
 }
 
 export interface CurrentVideoMetadataStore {
@@ -89,6 +98,24 @@ export interface DownloadActionStatesStore {
     setIsPausingDownload: (download_id: string, isPausing: boolean) => void;
     setIsCancelingDownload: (download_id: string, isCanceling: boolean) => void;
     setIsDeleteFileChecked: (download_id: string, isDeleteFileChecked: boolean) => void;
+}
+
+export interface ConverterPageStatesStore {
+    activeTab: string;
+    activeCompletedConversionsPage: number;
+    setActiveTab: (tab: string) => void;
+    setActiveCompletedConversionsPage: (page: number) => void;
+}
+
+export interface ConversionActionStatesStore {
+    conversionActions: {
+        [conversion_id: string]: {
+            isCanceling: boolean;
+            isDeleteFileChecked: boolean;
+        }
+    };
+    setIsCancelingConversion: (conversion_id: string, isCanceling: boolean) => void;
+    setIsDeleteFileChecked: (conversion_id: string, isDeleteFileChecked: boolean) => void;
 }
 
 export interface SettingsPageStatesStore {

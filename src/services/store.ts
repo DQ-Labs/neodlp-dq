@@ -1,8 +1,9 @@
-import { BasePathsStore, CurrentVideoMetadataStore, DownloadActionStatesStore, DownloaderPageStatesStore, DownloadStatesStore, EnvironmentStore, KvPairsStatesStore, LibraryPageStatesStore, LogsStore, SettingsPageStatesStore } from '@/types/store';
+import { BasePathsStore, ConversionActionStatesStore, ConversionStatesStore, ConverterPageStatesStore, CurrentVideoMetadataStore, DownloadActionStatesStore, DownloaderPageStatesStore, DownloadStatesStore, EnvironmentStore, KvPairsStatesStore, LibraryPageStatesStore, LogsStore, SettingsPageStatesStore } from '@/types/store';
 import { create } from 'zustand';
 
 export const useBasePathsStore = create<BasePathsStore>((set) => ({
     ffmpegPath: null,
+    ffprobePath: null,
     tempDownloadDirPath: null,
     downloadDirPath: null,
     setPath: (key, path) => set(() => ({ [key]: path }))
@@ -26,6 +27,27 @@ export const useDownloadStatesStore = create<DownloadStatesStore>((set) => ({
             return { downloadStates: [...prev.downloadStates, state] };
         }
     })
+}));
+
+export const useConversionStatesStore = create<ConversionStatesStore>((set) => ({
+    conversionStates: [],
+    setConversionStates: (states) => set(() => ({ conversionStates: states })),
+    setConversionState: (state) => set((prev) => {
+        const existingIndex = prev.conversionStates.findIndex(
+            item => item.conversion_id === state.conversion_id
+        );
+
+        if (existingIndex !== -1) {
+            const updatedStates = [...prev.conversionStates];
+            updatedStates[existingIndex] = state;
+            return { conversionStates: updatedStates };
+        } else {
+            return { conversionStates: [...prev.conversionStates, state] };
+        }
+    }),
+    removeConversionState: (conversion_id) => set((prev) => ({
+        conversionStates: prev.conversionStates.filter(item => item.conversion_id !== conversion_id)
+    }))
 }));
 
 export const useCurrentVideoMetadataStore = create<CurrentVideoMetadataStore>((set) => ({
@@ -115,6 +137,35 @@ export const useLibraryPageStatesStore = create<LibraryPageStatesStore>((set) =>
     activeCompletedDownloadsPage: 1,
     setActiveTab: (tab) => set(() => ({ activeTab: tab })),
     setActiveCompletedDownloadsPage: (page) => set(() => ({ activeCompletedDownloadsPage: page }))
+}));
+
+export const useConverterPageStatesStore = create<ConverterPageStatesStore>((set) => ({
+    activeTab: 'queue',
+    activeCompletedConversionsPage: 1,
+    setActiveTab: (tab) => set(() => ({ activeTab: tab })),
+    setActiveCompletedConversionsPage: (page) => set(() => ({ activeCompletedConversionsPage: page }))
+}));
+
+export const useConversionActionStatesStore = create<ConversionActionStatesStore>((set) => ({
+    conversionActions: {},
+    setIsCancelingConversion: (conversion_id, isCanceling) => set((state) => ({
+        conversionActions: {
+            ...state.conversionActions,
+            [conversion_id]: {
+                ...state.conversionActions[conversion_id],
+                isCanceling
+            }
+        }
+    })),
+    setIsDeleteFileChecked: (conversion_id, isDeleteFileChecked) => set((state) => ({
+        conversionActions: {
+            ...state.conversionActions,
+            [conversion_id]: {
+                ...state.conversionActions[conversion_id],
+                isDeleteFileChecked
+            }
+        }
+    }))
 }));
 
 export const useDownloadActionStatesStore = create<DownloadActionStatesStore>((set) => ({

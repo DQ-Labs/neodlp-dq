@@ -1,4 +1,5 @@
 import { DownloadState } from '@/types/download'
+import { ConversionState } from '@/types/conversion'
 import { KvStoreTable } from '@/types/kvStore'
 import { PlaylistInfo } from '@/types/playlist'
 import { SettingsTable } from '@/types/settings'
@@ -264,6 +265,104 @@ export const fetchDownloadStateById = async (download_id: string) => {
             AND downloads.playlist_id IS NOT NULL
         WHERE downloads.download_id = $1`,
         [download_id]
+    )
+    return result.length > 0 ? result[0] : null
+}
+
+export const saveConversionState = async (conversionState: ConversionState) => {
+    const db = await Database.load('sqlite:database.db')
+    return await db.execute(
+        `INSERT INTO conversions (
+            conversion_id,
+            conversion_status,
+            conversion_type,
+            queue_index,
+            input_path,
+            input_filename,
+            input_ext,
+            input_filesize,
+            input_duration,
+            output_path,
+            output_format,
+            process_id,
+            progress,
+            speed,
+            filesize,
+            error_message
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+        ON CONFLICT(conversion_id) DO UPDATE SET
+            conversion_status = $2,
+            conversion_type = $3,
+            queue_index = $4,
+            input_path = $5,
+            input_filename = $6,
+            input_ext = $7,
+            input_filesize = $8,
+            input_duration = $9,
+            output_path = $10,
+            output_format = $11,
+            process_id = $12,
+            progress = $13,
+            speed = $14,
+            filesize = $15,
+            error_message = $16`,
+        [
+            conversionState.conversion_id,
+            conversionState.conversion_status,
+            conversionState.conversion_type,
+            conversionState.queue_index,
+            conversionState.input_path,
+            conversionState.input_filename,
+            conversionState.input_ext,
+            conversionState.input_filesize,
+            conversionState.input_duration,
+            conversionState.output_path,
+            conversionState.output_format,
+            conversionState.process_id,
+            conversionState.progress,
+            conversionState.speed,
+            conversionState.filesize,
+            conversionState.error_message
+        ]
+    )
+}
+
+export const updateConversionStatus = async (conversion_id: string, conversion_status: string, error_message: string | null = null) => {
+    const db = await Database.load('sqlite:database.db')
+    return await db.execute(
+        'UPDATE conversions SET conversion_status = $2, error_message = $3 WHERE conversion_id = $1',
+        [conversion_id, conversion_status, error_message]
+    )
+}
+
+export const updateConversionOutputPath = async (conversion_id: string, output_path: string, filesize: number | null) => {
+    const db = await Database.load('sqlite:database.db')
+    return await db.execute(
+        'UPDATE conversions SET output_path = $2, filesize = $3 WHERE conversion_id = $1',
+        [conversion_id, output_path, filesize]
+    )
+}
+
+export const deleteConversionState = async (conversion_id: string) => {
+    const db = await Database.load('sqlite:database.db')
+    return await db.execute(
+        'DELETE FROM conversions WHERE conversion_id = $1',
+        [conversion_id]
+    )
+}
+
+export const fetchAllConversionStates = async () => {
+    const db = await Database.load('sqlite:database.db')
+    return await db.select<ConversionState[]>(
+        `SELECT * FROM conversions ORDER BY id DESC`
+    )
+}
+
+export const fetchConversionStateById = async (conversion_id: string) => {
+    const db = await Database.load('sqlite:database.db')
+    const result = await db.select<ConversionState[]>(
+        `SELECT * FROM conversions WHERE conversion_id = $1`,
+        [conversion_id]
     )
     return result.length > 0 ? result[0] : null
 }

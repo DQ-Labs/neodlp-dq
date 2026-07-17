@@ -26,6 +26,7 @@
     "sql:allow-execute",
     "fs:allow-app-write",
     "fs:allow-app-write-recursive",
+    "fs:allow-stat",
     "updater:default",
     "process:default",
     "clipboard-manager:allow-read-text",
