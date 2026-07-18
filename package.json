@@ -1,7 +1,7 @@
 {
   "name": "neodlp-dq",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Modern Video/Audio Downloader based on YT-DLP (DQ Labs fork of NeoDLP)",
   "author": "DQ Labs",
   "license": "MIT",
