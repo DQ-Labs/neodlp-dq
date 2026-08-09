@@ -2,9 +2,10 @@ import { Button } from "@/components/ui/button";
 import Heading from "@/components/heading";
 import { open } from "@tauri-apps/plugin-dialog";
 import { useConverterContext } from "@/providers/converterContextProvider";
-import { useConversionStatesStore, useConverterPageStatesStore } from "@/services/store";
+import { useBasePathsStore, useConversionStatesStore, useConverterPageStatesStore } from "@/services/store";
 import { toast } from "sonner";
 import { FileCog } from "lucide-react";
+import * as fs from "@tauri-apps/plugin-fs";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { QueuedConversions } from "@/components/pages/converter/queuedConversions";
@@ -15,6 +16,7 @@ const MEDIA_EXTENSIONS = ['mp3', 'wav', 'flac', 'aac', 'm4a', 'ogg', 'wma', 'aif
 export default function ConverterPage() {
     const { startConversion } = useConverterContext();
     const conversionStates = useConversionStatesStore(state => state.conversionStates);
+    const downloadDirPath = useBasePathsStore(state => state.downloadDirPath);
 
     const activeTab = useConverterPageStatesStore(state => state.activeTab);
     const setActiveTab = useConverterPageStatesStore(state => state.setActiveTab);
@@ -39,9 +41,23 @@ export default function ConverterPage() {
 
     const handlePickFiles = async () => {
         try {
+            // Open in the download folder by default — converting something that was just
+            // downloaded is the common case. Only pass it if it actually exists: the folder
+            // is resolved at startup but never created until the first download lands, and
+            // a non-existent defaultPath makes the dialog open somewhere arbitrary.
+            let defaultPath: string | undefined;
+            if (downloadDirPath) {
+                try {
+                    if (await fs.exists(downloadDirPath)) defaultPath = downloadDirPath;
+                } catch (error) {
+                    console.error("Failed to check download directory:", error);
+                }
+            }
+
             const files = await open({
                 multiple: true,
                 directory: false,
+                defaultPath,
                 filters: [
                     { name: 'Media', extensions: MEDIA_EXTENSIONS },
                 ],
