@@ -351,6 +351,25 @@ export const deleteConversionState = async (conversion_id: string) => {
     )
 }
 
+// Conversions left 'starting'/'converting' by a previous session (quit, crash, update relaunch)
+// have no live ffmpeg behind them. Put them back in the queue and clear the stale process_id,
+// which Windows may since have reused for an unrelated process. Returns the rows as they were,
+// so the caller can clean up their partial output files.
+export const requeueInterruptedConversions = async () => {
+    const db = await Database.load('sqlite:database.db')
+    const interrupted = await db.select<ConversionState[]>(
+        `SELECT * FROM conversions WHERE conversion_status IN ('starting', 'converting')`
+    )
+    if (interrupted.length > 0) {
+        await db.execute(
+            `UPDATE conversions SET conversion_status = 'queued', queue_index = NULL, output_path = NULL,
+                process_id = NULL, progress = NULL, speed = NULL
+            WHERE conversion_status IN ('starting', 'converting')`
+        )
+    }
+    return interrupted
+}
+
 export const fetchAllConversionStates = async () => {
     const db = await Database.load('sqlite:database.db')
     return await db.select<ConversionState[]>(

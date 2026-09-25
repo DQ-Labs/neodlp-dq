@@ -92,7 +92,9 @@ export function QueuedConversion({ state }: QueuedConversionProps) {
                             setIsCancelingConversion(state.conversion_id, false);
                         }
                     }}
-                    disabled={itemActionStates.isCanceling}
+                    // No process_id exists yet while starting, so a cancel then couldn't stop the
+                    // ffmpeg about to be spawned; it becomes cancelable once 'converting'.
+                    disabled={itemActionStates.isCanceling || state.conversion_status === 'starting'}
                     >
                         {itemActionStates.isCanceling ? (
                             <>

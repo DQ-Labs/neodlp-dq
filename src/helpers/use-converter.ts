@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { ulid } from "ulid";
 import { useThrottledCallback } from '@tanstack/react-pacer/throttler';
 import * as fs from "@tauri-apps/plugin-fs";
+import { requeueInterruptedConversions } from "@/services/database";
 
 const MAX_PARALLEL_CONVERSIONS = 1; // ffmpeg encodes are CPU-bound, unlike I/O-bound downloads
 
@@ -50,6 +51,44 @@ async function probeFile(inputPath: string): Promise<ProbeResult> {
     return { durationSeconds, hasVideo, sizeBytes };
 }
 
+async function removePartialOutput(outputPath: string | null): Promise<void> {
+    if (!outputPath) return;
+    try {
+        if (await fs.exists(outputPath)) {
+            await fs.remove(outputPath);
+        }
+    } catch (e) {
+        console.error(`Failed to remove partial conversion output "${outputPath}": ${e}`);
+    }
+}
+
+// Module-level rather than refs: they must be shared by every useConverter() instance and
+// outlive re-renders. Entries are never removed — ULIDs are tiny and never reused.
+// settled: ffmpeg has exited (or is being killed), so any trailing throttled progress save
+// must be dropped — otherwise its upsert lands after the final status update and writes the
+// row back as 'converting' (or re-inserts a cancelled row), wedging the queue.
+const settledConversionIds = new Set<string>();
+// canceled: the exit is user-initiated, so the close handler cleans up instead of reporting failure.
+const canceledConversionIds = new Set<string>();
+
+let interruptedRecovery: Promise<void> | null = null;
+
+export function recoverInterruptedConversions(): Promise<void> {
+    interruptedRecovery ??= (async () => {
+        try {
+            const interrupted = await requeueInterruptedConversions();
+            for (const state of interrupted) {
+                // output_path is recorded at spawn and was a fresh, non-existing path then,
+                // so whatever is there now is this conversion's own partial output.
+                await removePartialOutput(state.output_path);
+            }
+        } catch (e) {
+            console.error(`Failed to recover interrupted conversions: ${e}`);
+        }
+    })();
+    return interruptedRecovery;
+}
+
 export default function useConverter() {
     const globalConversionStates = useConversionStatesStore((state) => state.conversionStates);
     const setConversionState = useConversionStatesStore((state) => state.setConversionState);
@@ -67,6 +106,7 @@ export default function useConverter() {
     const isProcessingQueueRef = useRef(false);
 
     const updateConversionProgress = useThrottledCallback((state: ConversionState) => {
+        if (settledConversionIds.has(state.conversion_id)) return;
         conversionStateSaver.mutate(state, {
             onSuccess: () => {
                 queryClient.invalidateQueries({ queryKey: ['conversion-states'] });
@@ -124,6 +164,14 @@ export default function useConverter() {
         });
 
         command.on('close', async (data: any) => {
+            settledConversionIds.add(currentState.conversion_id);
+            if (canceledConversionIds.has(currentState.conversion_id)) {
+                // cancelConversion owns the store/DB cleanup; the file is only
+                // deletable now that ffmpeg has released it.
+                await removePartialOutput(outputPath);
+                processQueuedConversions();
+                return;
+            }
             if (data.code === 0) {
                 let filesize: number | null = null;
                 try {
@@ -169,6 +217,8 @@ export default function useConverter() {
         });
 
         command.on('error', (error: any) => {
+            settledConversionIds.add(currentState.conversion_id);
+            if (canceledConversionIds.has(currentState.conversion_id)) return;
             console.error(`Error converting file: ${error}`);
             const erroredState: ConversionState = { ...currentState, conversion_status: 'errored', error_message: String(error) };
             setConversionState(erroredState);
@@ -182,7 +232,9 @@ export default function useConverter() {
         });
 
         const child = await command.spawn();
-        currentState = { ...currentState, conversion_status: 'converting', process_id: child.pid };
+        // output_path is recorded now (not just on completion) so an interrupted conversion's
+        // partial file can be found and removed by recoverInterruptedConversions next launch.
+        currentState = { ...currentState, conversion_status: 'converting', process_id: child.pid, output_path: outputPath };
         conversionStateSaver.mutate(currentState, {
             onSuccess: () => {
                 queryClient.invalidateQueries({ queryKey: ['conversion-states'] });
@@ -238,6 +290,9 @@ export default function useConverter() {
     const cancelConversion = async (state: ConversionState): Promise<void> => {
         try {
             if ((state.conversion_status === 'converting' || state.conversion_status === 'starting') && state.process_id) {
+                // Before the kill, so the close handler it triggers already sees the cancellation.
+                canceledConversionIds.add(state.conversion_id);
+                settledConversionIds.add(state.conversion_id);
                 await invoke('kill_all_process', { pid: state.process_id });
             }
             removeConversionState(state.conversion_id);
@@ -269,11 +324,11 @@ export default function useConverter() {
 
         if (!freshQueued.length || freshOngoing.length >= MAX_PARALLEL_CONVERSIONS) return;
 
+        const currentState = freshQueued[0];
+        const startingState: ConversionState = { ...currentState, conversion_status: 'starting', queue_index: null };
         try {
             isProcessingQueueRef.current = true;
-            const currentState = freshQueued[0];
 
-            const startingState: ConversionState = { ...currentState, conversion_status: 'starting', queue_index: null };
             // Synchronous store update, before any await — this is what actually closes the
             // race: any processQueuedConversions call that runs after this line (even one
             // already in flight when this one started) will see this item as no longer queued.
@@ -284,6 +339,16 @@ export default function useConverter() {
             await runConversion(startingState);
         } catch (e) {
             console.error("Error processing conversion queue:", e);
+            // Failed before ffmpeg was running (e.g. spawn failed). Left as 'starting' it would
+            // count as ongoing forever and block the queue — and Cancel is disabled while starting.
+            const erroredState: ConversionState = { ...startingState, conversion_status: 'errored', error_message: String(e) };
+            setConversionState(erroredState);
+            conversionStatusUpdater.mutate({ conversion_id: startingState.conversion_id, conversion_status: 'errored', error_message: String(e) }, {
+                onSuccess: () => {
+                    queryClient.invalidateQueries({ queryKey: ['conversion-states'] });
+                },
+                onError: (err) => console.error("Failed to update conversion status:", err)
+            });
         } finally {
             isProcessingQueueRef.current = false;
         }
