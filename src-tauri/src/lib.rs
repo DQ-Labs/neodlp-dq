@@ -82,6 +82,55 @@ async fn kill_all_process(pid: i32) -> Result<(), String> {
     Ok(())
 }
 
+// Elevated fallback for updating the bundled yt-dlp when the install dir isn't user-writable.
+// Lives here rather than as a frontend shell command so the webview never needs permission to
+// run powershell: the exe path is derived from the app's own location, and the channel is
+// allowlisted, so this can't be pointed at an arbitrary binary.
+#[tauri::command]
+async fn update_ytdlp_elevated(channel: String) -> Result<(), String> {
+    if channel != "stable" && channel != "nightly" {
+        return Err(format!("Invalid yt-dlp update channel: {}", channel));
+    }
+
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+        let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
+        let ytdlp_path = exe_path
+            .parent()
+            .ok_or("Failed to get parent directory")?
+            .join("yt-dlp.exe");
+        // Single-quoted PowerShell literal; embedded single quotes are escaped by doubling.
+        let quoted_path = format!("'{}'", ytdlp_path.to_string_lossy().replace('\'', "''"));
+        let script = format!(
+            "$p = Start-Process -FilePath {} -ArgumentList '--update-to {}' -Verb RunAs -Wait -WindowStyle Hidden -PassThru; exit $p.ExitCode",
+            quoted_path, channel
+        );
+
+        info!("Updating yt-dlp with elevated privileges ({} channel)", channel);
+        let output = StdCommand::new("powershell")
+            .args(["-NoProfile", "-NonInteractive", "-Command", &script])
+            .creation_flags(CREATE_NO_WINDOW)
+            .output()
+            .map_err(|e| e.to_string())?;
+
+        if output.status.success() {
+            Ok(())
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            error!("Elevated yt-dlp update failed ({}): {}", output.status, stderr);
+            Err(if stderr.is_empty() { output.status.to_string() } else { stderr })
+        }
+    }
+
+    #[cfg(not(windows))]
+    {
+        Err("Elevated yt-dlp update is only supported on Windows".to_string())
+    }
+}
+
 #[tauri::command]
 async fn fetch_image(
     app_handle: tauri::AppHandle,
@@ -414,6 +463,7 @@ pub async fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             kill_all_process,
+            update_ytdlp_elevated,
             fetch_image,
             open_file_with_app,
             open_link_with_app,
